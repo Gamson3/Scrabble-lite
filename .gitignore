@@ -2,3 +2,12 @@
 /dist
 .env
 /source-for-requirements
+
+echo "/node_modules
+build/
+.env
+*.log
+.DS_Store
+.vscode/settings.json" > .gitignore
+
+/docs-sample
