@@ -1,0 +1,28 @@
+{
+  "name": "scrabble-lite-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor shell that wraps the Morph Duel web client for Android/iOS builds.",
+  "scripts": {
+    "build": "npm run web:build && npx cap sync",
+    "web:build": "cd ../web && npm run build",
+    "sync": "npx cap sync",
+    "android": "npm run build && npx cap run android",
+    "ios": "npm run build && npx cap run ios",
+    "open:android": "npx cap open android",
+    "open:ios": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/browser": "^6.0.0",
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/haptics": "^6.0.0",
+    "@capacitor/ios": "^6.1.0",
+    "@capacitor/keyboard": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2"
+  }
+}
