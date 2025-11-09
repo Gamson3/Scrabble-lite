@@ -1,0 +1,5 @@
+.lobby-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px }
+.player-item { padding:6px 0 }
+.room-form { margin-top: 12px }
+.room-id { color: #667281 }
+.waiting-message { color: #6b7280; margin-top: 8px }
