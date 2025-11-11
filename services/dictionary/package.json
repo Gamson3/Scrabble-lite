@@ -10,6 +10,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "generate:morph": "ts-node --files scripts/generate-morph-dictionary.ts",
+    "generate:all-words": "ts-node --files scripts/generate-all-words-dictionary.ts",
     "find-ladder": "node scripts/find_ladder.js"
   },
   "dependencies": {

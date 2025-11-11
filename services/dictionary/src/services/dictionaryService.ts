@@ -30,9 +30,13 @@ class DictionaryService {
       .map(word => word.toUpperCase())
       .filter(word => word.length === 5);
 
-    this.buildWordGraph();
-
-    console.log(`📖 Dictionary loaded: ${this.words.size} words (${this.fiveLetterWords.length} morphable)`);
+    // Only build word graph if we have 5-letter words for morph game
+    if (this.fiveLetterWords.length > 0) {
+      this.buildWordGraph();
+      console.log(`📖 Dictionary loaded: ${this.words.size} words (${this.fiveLetterWords.length} morphable)`);
+    } else {
+      console.log(`📖 Dictionary loaded: ${this.words.size} words (comprehensive word list, no morph game)`);
+    }
   }
 
   private buildWordGraph() {
