@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { GameState, BoardCell } from '../models/GameState';
-import { TransformationRaceGameState, MoveHistoryEntry } from '../models/TransformationRaceGameState';
 import { createTileBag, drawTiles } from '../utils/tiles';
 
 const DICTIONARY_SERVICE_URL = process.env.DICTIONARY_SERVICE_URL || 'http://localhost:3002';
@@ -59,7 +58,6 @@ function getWordleFeedback(word: string, target: string): string[] {
 
 class GameService {
   private games: Map<string, GameState & { bag: string[] }> = new Map();
-  private transformationGames: Map<string, TransformationRaceGameState> = new Map();
 
   startGame(roomId: string, playerIds: string[]): GameState {
     const size = 7;
@@ -249,135 +247,6 @@ class GameService {
       score,
       wordsFormed: [upperWord],
       gameState: this.getState(roomId),
-    };
-  }
-
-  async startTransformationRace(
-    gameId: string,
-    playerIds: string[],
-    startWord: string,
-    targetWord: string
-  ): Promise<TransformationRaceGameState> {
-    if (playerIds.length !== 2) throw new Error('Exactly 2 players are required.');
-    if (!startWord || startWord.length !== 5) throw new Error('Start word must be 5 letters.');
-    if (!targetWord || targetWord.length !== 5) throw new Error('Target word must be 5 letters.');
-    if (startWord.toUpperCase() === targetWord.toUpperCase()) throw new Error('Start and target words must differ.');
-
-    const [startValid, targetValid] = await Promise.all([
-      isWordValid(startWord),
-      isWordValid(targetWord)
-    ]);
-
-    if (!startValid.ok || !targetValid.ok) {
-      throw new Error('Dictionary service unavailable. Try again later.');
-    }
-    if (!startValid.valid || !targetValid.valid) {
-      throw new Error('Start or target word is not in the dictionary.');
-    }
-
-    const normalizedStart = startWord.toUpperCase();
-    const normalizedTarget = targetWord.toUpperCase();
-
-    const state: TransformationRaceGameState = {
-      gameId,
-      players: playerIds,
-      targetWord: normalizedTarget,
-      currentWord: normalizedStart,
-      startWord: normalizedStart,
-      turn: playerIds[0],
-      round: 1,
-      history: [],
-      status: 'ongoing',
-      winner: null,
-      usedWords: [normalizedStart],
-    };
-
-    this.transformationGames.set(gameId, state);
-    return state;
-  }
-
-  getTransformationRaceState(gameId: string): TransformationRaceGameState | undefined {
-    return this.transformationGames.get(gameId);
-  }
-
-  async submitTransformationMove(gameId: string, userId: string, word: string) {
-    const game = this.transformationGames.get(gameId);
-    if (!game) {
-      const err: any = new Error('No Transformation Race game found.');
-      err.code = 'GAME_NOT_FOUND';
-      throw err;
-    }
-    if (game.status !== 'ongoing') {
-      const err: any = new Error('Game has already ended.');
-      err.code = 'GAME_ENDED';
-      throw err;
-    }
-    if (game.turn !== userId) {
-      const err: any = new Error('It is not your turn.');
-      err.code = 'NOT_YOUR_TURN';
-      throw err;
-    }
-
-    const newWord = word.toUpperCase();
-    if (newWord.length !== 5) {
-      const err: any = new Error('Word must be exactly 5 letters.');
-      err.code = 'INVALID_LENGTH';
-      throw err;
-    }
-
-    let diff = 0;
-    for (let i = 0; i < 5; i++) {
-      if (game.currentWord[i] !== newWord[i]) diff++;
-    }
-    if (diff !== 1) {
-      const err: any = new Error('You must change exactly one letter.');
-      err.code = 'INVALID_DIFFERENCE';
-      throw err;
-    }
-
-    if (game.usedWords.includes(newWord)) {
-      const err: any = new Error('Word has already been used.');
-      err.code = 'WORD_REUSED';
-      throw err;
-    }
-
-    const validation = await isWordValid(newWord);
-    if (!validation.ok) {
-      const err: any = new Error('Dictionary service unavailable.');
-      err.code = 'DICTIONARY_SERVICE_ERROR';
-      throw err;
-    }
-    if (!validation.valid) {
-      const err: any = new Error('Word not found in dictionary.');
-      err.code = 'INVALID_WORD';
-      throw err;
-    }
-
-    const feedback = getWordleFeedback(newWord, game.targetWord);
-    const entry: MoveHistoryEntry = {
-      player: userId,
-      word: newWord,
-      feedback,
-      timestamp: new Date().toISOString(),
-    };
-
-    game.history.push(entry);
-    game.usedWords.push(newWord);
-    game.currentWord = newWord;
-
-    if (newWord === game.targetWord) {
-      game.status = 'ended';
-      game.winner = userId;
-    } else {
-      game.turn = game.players.find(p => p !== userId)!;
-      game.round += 1;
-    }
-
-    return {
-      valid: true,
-      feedback,
-      gameState: game,
-      winner: game.winner,
     };
   }
 }

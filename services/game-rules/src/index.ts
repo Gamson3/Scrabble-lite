@@ -2,7 +2,7 @@ import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import gameRoutes from './routes/gameRoutes';
-import morphRoutes from './routes/morphRoutes';
+import circleRoutes from './routes/circleRoutes';
 
 dotenv.config();
 
@@ -19,7 +19,7 @@ app.use((req: Request, res: Response, next) => {
 });
 
 app.use('/games', gameRoutes);
-app.use('/morph', morphRoutes);
+app.use('/circle', circleRoutes);
 
 app.get('/health', (req: Request, res: Response) => {
   res.json({
