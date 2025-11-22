@@ -78,12 +78,6 @@ async function handleMessage(ws: WebSocket, message: WSMessage) {
     case 'make_move':
       await handleMakeMove(ws, payload);
       break;
-    case 'morph_move':
-      await handleMorphMove(ws, payload);
-      break;
-    case 'morph_hint_request':
-      await handleMorphHint(ws, payload);
-      break;
     case 'pass_turn':
       await handlePassTurn(ws, payload);
       break;
@@ -92,6 +86,15 @@ async function handleMessage(ws: WebSocket, message: WSMessage) {
       break;
     case 'chat_message':
       await handleChatMessage(ws, payload);
+      break;
+    case 'circle_start_game':
+      await handleCircleStartGame(ws, payload);
+      break;
+    case 'circle_submit_word':
+      await handleCircleSubmitWord(ws, payload);
+      break;
+    case 'circle_end_round':
+      await handleCircleEndRound(ws, payload);
       break;
     case 'ping':
       send(ws, 'pong', { timestamp: new Date().toISOString() });
@@ -176,9 +179,10 @@ async function handleListRooms(ws: WebSocket) {
       rooms: rooms.map(r => ({
         roomId: r.roomId,
         roomName: r.roomName,
-        playerCount: r.players.length,
-        maxPlayers: 2,
+        host: r.host,
+        players: r.players.map(p => ({ userId: p.userId, username: p.username })),
         status: r.status,
+        gameType: r.gameType,
       })),
     });
   } catch (error: any) {
@@ -451,68 +455,142 @@ async function handleChatMessage(ws: WebSocket, payload: any) {
   }
 }
 
-async function handleMorphMove(ws: WebSocket, payload: any) {
+async function handleCircleStartGame(ws: WebSocket, payload: any) {
   const client = clients.get(ws);
   if (!client) {
     return sendError(ws, 'UNAUTHORIZED', 'Not authenticated');
   }
 
   try {
-    const { roomId, newWord } = payload;
+    const { roomId, playerIds, usernames, totalRounds } = payload;
 
-    if (!roomId || !newWord) {
-      return sendError(ws, 'INVALID_MOVE', 'Missing room ID or word');
+    if (!roomId || !playerIds || !usernames) {
+      return sendError(ws, 'INVALID_INPUT', 'Missing required fields');
     }
 
-    const response = await axios.post(`${GAME_SERVICE_URL}/morph/${roomId}/move`, {
+    // Call Game Rules Service to start the game
+    const response = await axios.post(`${GAME_SERVICE_URL}/circle/${roomId}/start`, {
+      roomId,
+      playerIds,
+      usernames,
+      totalRounds, // Pass through totalRounds (1 for CLI, default 3 for web)
+    });
+
+    const { gameState } = response.data;
+
+    // Broadcast to all players in the room
+    broadcastToRoom(roomId, 'circle_game_started', {
+      roomId,
+      gameState,
+    });
+  } catch (error: any) {
+    console.error('Circle start game error:', error);
+    sendError(ws, 'CIRCLE_START_ERROR', error.message);
+  }
+}
+
+async function handleCircleSubmitWord(ws: WebSocket, payload: any) {
+  const client = clients.get(ws);
+  if (!client) {
+    return sendError(ws, 'UNAUTHORIZED', 'Not authenticated');
+  }
+
+  try {
+    const { roomId, word } = payload;
+
+    if (!roomId || !word) {
+      return sendError(ws, 'INVALID_INPUT', 'Missing room ID or word');
+    }
+
+    // Call Game Rules Service to submit the word
+    const response = await axios.post(`${GAME_SERVICE_URL}/circle/${roomId}/word`, {
       userId: client.userId,
-      newWord,
+      word,
     });
 
-    const moveData = response.data as {
-      valid: boolean;
-      feedback?: string[];
-      transformationCount?: number;
-      completed?: boolean;
-      winner?: boolean;
-      gameState?: any;
-      errors?: any[];
-      insight?: any;
-      warnings?: string[];
-      hintBudget?: { used: number; remaining: number; limit: number };
-    };
+    const { isValid, score, gameState } = response.data;
 
-    send(ws, 'morph_move_result', {
-      valid: moveData.valid,
-      feedback: moveData.feedback,
-      transformationCount: moveData.transformationCount,
-      completed: moveData.completed,
-      winner: moveData.winner,
-      player: client.userId,
-      errors: moveData.errors,
-      insight: moveData.insight,
-      warnings: moveData.warnings,
-      hintBudget: moveData.hintBudget,
+    // Broadcast the word submission to all players in the room
+    broadcastToRoom(roomId, 'circle_word_submitted', {
+      roomId,
+      userId: client.userId,
+      username: client.username,
+      word: word.toUpperCase(),
+      isValid,
+      score,
+      gameState,
     });
 
-    if (moveData.valid) {
-      broadcastToRoom(roomId, 'morph_game_state', {
+    // Also send confirmation to the submitting player
+    send(ws, 'circle_word_confirmed', {
+      word: word.toUpperCase(),
+      isValid,
+      score,
+      message: isValid ? `+${score} points!` : 'Word not valid',
+    });
+  } catch (error: any) {
+    console.error('Circle submit word error:', error);
+    sendError(ws, 'CIRCLE_SUBMIT_ERROR', error.message);
+  }
+}
+
+// Track last processed round per room to prevent duplicate end-round calls
+const lastProcessedRound = new Map<string, number>();
+
+async function handleCircleEndRound(ws: WebSocket, payload: any) {
+  const client = clients.get(ws);
+  if (!client) {
+    return sendError(ws, 'UNAUTHORIZED', 'Not authenticated');
+  }
+
+  try {
+    const { roomId } = payload;
+
+    if (!roomId) {
+      return sendError(ws, 'INVALID_INPUT', 'Missing room ID');
+    }
+
+    // Get current game state to check round number
+    const stateResponse = await axios.get(`${GAME_SERVICE_URL}/circle/${roomId}/state`);
+    const currentRoundNumber = stateResponse.data.gameState.roundNumber;
+
+    // Check if this round has already been processed
+    const lastProcessed = lastProcessedRound.get(roomId);
+    if (lastProcessed && lastProcessed === currentRoundNumber) {
+      console.log(`⚠️ Round ${currentRoundNumber} already processed for room ${roomId}, ignoring duplicate call`);
+      return; // Silently ignore duplicate
+    }
+
+    // Mark this round as being processed
+    lastProcessedRound.set(roomId, currentRoundNumber);
+
+    console.log(`🎯 Processing end-round for room ${roomId}, round ${currentRoundNumber}`);
+
+    // Call Game Rules Service to end the round
+    const response = await axios.post(`${GAME_SERVICE_URL}/circle/${roomId}/end-round`);
+
+    const { roundWinner, gameState, isGameFinished } = response.data;
+
+    if (isGameFinished) {
+      // Game is finished, broadcast game over
+      broadcastToRoom(roomId, 'circle_game_over', {
         roomId,
-        gameState: moveData.gameState,
+        gameWinner: gameState.gameWinner,
+        finalScores: gameState.finalScores,
+        gameState,
+        isDraw: gameState.isDraw || false,
       });
-
-      if (moveData.winner) {
-        broadcastToRoom(roomId, 'morph_game_over', {
-          roomId,
-          winner: client.userId,
-          winnerName: client.username,
-          gameState: moveData.gameState,
-        });
-      }
+    } else {
+      // Next round starting, broadcast round ended
+      broadcastToRoom(roomId, 'circle_round_ended', {
+        roomId,
+        roundWinner,
+        gameState,
+      });
     }
   } catch (error: any) {
-    console.error('Morph move error:', error);
-    sendError(ws, 'MORPH_MOVE_ERROR', error.message);
+    console.error('Circle end round error:', error);
+    sendError(ws, 'CIRCLE_END_ROUND_ERROR', error.message);
   }
 }
 
@@ -539,42 +617,4 @@ function broadcastToRoom(roomId: string, type: string, payload: any) {
   }
 
   console.log(`📢 Broadcast to room ${roomId}: ${type}`);
-}
-
-async function handleMorphHint(ws: WebSocket, payload: any) {
-  const client = clients.get(ws);
-  if (!client) {
-    return sendError(ws, 'UNAUTHORIZED', 'Not authenticated');
-  }
-
-  try {
-    const { roomId, limit } = payload || {};
-
-    if (!roomId) {
-      return sendError(ws, 'INVALID_HINT_REQUEST', 'Missing room ID');
-    }
-
-    const response = await axios.post(`${GAME_SERVICE_URL}/morph/${roomId}/hints`, {
-      userId: client.userId,
-      limit,
-    });
-
-    const hintData = response.data as {
-      suggestions: Array<{ word: string }>;
-      hintBudget: { used: number; remaining: number; limit: number };
-    };
-
-    send(ws, 'morph_hint_result', {
-      roomId,
-      suggestions: hintData.suggestions,
-      hintBudget: hintData.hintBudget,
-    });
-  } catch (error: any) {
-    console.error('Morph hint error:', error);
-    let message = error.message;
-    if (error.response?.data?.error?.message) {
-      message = error.response.data.error.message;
-    }
-    sendError(ws, 'MORPH_HINT_ERROR', message);
-  }
 }
