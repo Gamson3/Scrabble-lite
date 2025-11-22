@@ -101,7 +101,7 @@ npm start
 
 **Terminal 1 - Player 1:**
 ```
-1. Register → username: alice
+1. Register → username: Tom
 2. Create Room → name: My Game
 3. Wait for player 2...
 4. Start Game (as host)
@@ -231,7 +231,7 @@ Two players on the same machine:
 ```bash
 cd clients/cli
 npm run dev
-# Register as "alice"
+# Register as "Tom"
 # Create room "Quick Game"
 # Start game when bob joins
 # Place "CAT" at row 3, col 2, horizontal
@@ -242,7 +242,7 @@ npm run dev
 cd clients/cli
 npm run dev
 # Register as "bob"
-# Join alice's room
+# Join Tom's room
 # Place "ATE" at row 3, col 3, vertical
 ```
 
