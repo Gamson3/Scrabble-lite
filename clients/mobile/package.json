@@ -2,7 +2,7 @@
   "name": "scrabble-lite-mobile",
   "version": "1.0.0",
   "private": true,
-  "description": "Capacitor shell that wraps the Morph Duel web client for Android/iOS builds.",
+  "description": "Capacitor shell that wraps the Word Rush ⚡ web client for Android/iOS builds.",
   "scripts": {
     "build": "npm run web:build && npx cap sync",
     "web:build": "cd ../web && npm run build",
@@ -23,6 +23,7 @@
     "@capacitor/status-bar": "^6.0.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
     "typescript": "^5.6.2"
   }
 }

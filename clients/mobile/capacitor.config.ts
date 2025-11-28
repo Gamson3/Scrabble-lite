@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.scrabblelite.morphduel',
-  appName: 'Word Morph Duel',
+  appId: 'com.wordrush.game',
+  appName: 'Word Rush',
   webDir: '../web/dist',
   bundledWebRuntime: false,
   server: {

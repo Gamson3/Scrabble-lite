@@ -1,6 +1,6 @@
-# Word Morph Duel mobile wrapper
+# Word Rush ⚡ Mobile Client
 
-This folder hosts a minimal Capacitor shell that packages the React/Vite Morph Duel client for Android and iOS builds. The shell simply serves the compiled `clients/web` bundle inside a native WebView, giving us parity across desktop and mobile deliverables for phases 7 and 8.
+This folder hosts a minimal Capacitor shell that packages the React/Vite Word Rush web client for Android and iOS builds. The shell simply serves the compiled `clients/web` bundle inside a native WebView, providing a hybrid mobile app that shares the same codebase as the web client.
 
 ## Prerequisites
 
