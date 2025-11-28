@@ -1,0 +1,31 @@
+/* Unified Screen Container */
+.screen-container {
+  width: 100%;
+  max-width: 1200px;
+  box-sizing: border-box;
+  padding: 2rem clamp(1rem, 5vw, 3rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .screen-container {
+    max-width: 100%;
+    padding: 1.5rem clamp(1rem, 4vw, 2rem);
+  }
+}
+
+@media (max-width: 768px) {
+  .screen-container {
+    padding: 1rem clamp(0.75rem, 3vw, 1.5rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .screen-container {
+    padding: 0.75rem;
+    gap: 1rem;
+  }
+}
