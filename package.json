@@ -1,0 +1,51 @@
+{
+  "name": "scrabble-lite",
+  "version": "1.0.0",
+  "description": "Distributed two-person Scrabble-lite game with microservices",
+  "private": true,
+  "workspaces": [
+    "services/*",
+    "clients/*"
+  ],
+  "scripts": {
+    "install:all": "npm install && npm run install:services && npm run install:clients",
+    "install:services": "npm install --workspace=services/user --workspace=services/dictionary --workspace=services/game-rules --workspace=services/room",
+    "install:clients": "npm install --workspace=clients/cli --workspace=clients/web",
+    "start:user": "npm start --workspace=services/user",
+    "start:dictionary": "npm start --workspace=services/dictionary",
+    "start:game": "npm start --workspace=services/game-rules",
+    "start:room": "npm start --workspace=services/room",
+    "start:cli": "npm start --workspace=clients/cli",
+    "start:web": "npm run dev --workspace=clients/web",
+    "dev:user": "npm run dev --workspace=services/user",
+    "dev:dictionary": "npm run dev --workspace=services/dictionary",
+    "dev:game": "npm run dev --workspace=services/game-rules",
+    "dev:room": "npm run dev --workspace=services/room",
+    "test": "npm test --workspaces",
+    "test:services": "npm test --workspace=services/user --workspace=services/dictionary --workspace=services/game-rules --workspace=services/room",
+    "build": "npm run build --workspaces",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "prettier": "^3.1.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "scrabble",
+    "microservices",
+    "websocket",
+    "distributed-system",
+    "game"
+  ],
+  "author": "PTE MIK Student",
+  "license": "MIT"
+}
