@@ -12,16 +12,16 @@ Health
 
 User Service
 - POST `/users/register`
-	- Request: `{ "username": "alice" }`
-	- Response: `{ "userId": "u_123", "username": "alice", "token": "<jwt>" }`
+	- Request: `{ "username": "Tom" }`
+	- Response: `{ "userId": "u_123", "username": "Tom", "token": "<jwt>" }`
 
 - POST `/users/login`
-	- Request: `{ "username": "alice" }`
-	- Response: `{ "userId": "u_123", "username": "alice", "token": "<jwt>" }`
+	- Request: `{ "username": "Tom" }`
+	- Response: `{ "userId": "u_123", "username": "Tom", "token": "<jwt>" }`
 
 - GET `/users/:id`
 	- Requires Authorization
-	- Response: `{ "userId": "u_123", "username": "alice" }`
+	- Response: `{ "userId": "u_123", "username": "Tom" }`
 
 Dictionary Service
 - POST `/validate`
@@ -32,23 +32,23 @@ Dictionary Service
 - GET `/words?length=5`
 	- Returns the list of known words for tooling and offline checks.
 
-Game Rules Service (Morph)
-- POST `/morph/:roomId/start`
-	- Request: `{ "gameMode": "morph", "options": { /* optional */ } }`
-	- Response: initial `MorphGameState` JSON snapshot (see `MorphGameState.ts` types).
+Game Rules Service (Circle Word Game)
+- POST `/circle/:roomId/start`
+	- Request: `{ "playerIds": ["u_123", "u_456"], "usernames": {"u_123": "Tom", "u_456": "bob"} }`
+	- Response: initial `CircleGameState` JSON snapshot with 9 circle letters (see `CircleGameState.ts` types).
 
-- POST `/morph/:roomId/move`
-	- Request: `{ "userId": "u_123", "newWord": "plate" }`
+- POST `/circle/:roomId/word`
+	- Request: `{ "userId": "u_123", "word": "stream" }`
 	- Response (success):
-		`{ "valid": true, "feedback": ["gray","yellow","green"], "gameState": { /* updated state */ } }`
-	- Response (error): `{ "valid": false, "errors": [{ "code": "INVALID_MOVE", "message": "Must change exactly one letter" }] }`
+		`{ "isValid": true, "score": 8, "gameState": { /* updated state */ } }`
+	- Response (error): `{ "isValid": false, "error": { "code": "NON_ADJACENT", "message": "Letters must be adjacent in circle" } }`
 
-- GET `/morph/:roomId/state`
-	- Returns the latest `MorphGameState` for the room.
+- GET `/circle/:roomId`
+	- Returns the latest `CircleGameState` for the room.
 
-- POST `/morph/:roomId/hint`
-	- Request: `{ "userId": "u_123", "hintType": "safe" }`
-	- Response: `{ "hints": ["PLATE -> PLACE"], "hintBudget": { "used": 1, "remaining": 4 } }`
+- POST `/circle/:roomId/end-round`
+	- Request: `{}`
+	- Response: `{ "roundWinner": "u_123", "scores": {...}, "gameState": {...} }`
 
 Room Service (HTTP helpers)
 - POST `/rooms`
@@ -73,9 +73,9 @@ Validate word (curl):
 curl -s -X POST http://localhost:3002/validate -H 'Content-Type: application/json' -d '{"word":"crate"}'
 ```
 
-Make morph move (curl):
+Submit word in Circle game (curl):
 ```bash
-curl -s -X POST http://localhost:3003/morph/r_456/move -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"userId":"u_123","newWord":"plate"}'
+curl -s -X POST http://localhost:3003/circle/r_456/word -H 'Content-Type: application/json' -d '{"userId":"u_123","word":"stream"}'
 ```
 
 See also: `WEBSOCKET.md` for the real-time message shapes (chat_broadcast, morph_move, morph_game_state, morph_move_result, etc.).

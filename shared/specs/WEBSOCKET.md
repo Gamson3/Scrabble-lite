@@ -481,143 +481,180 @@ Broadcast chat to all players.
 
 ---
 
-## 🔤 Word Morph Duel Messages
+## 🔤 Circle Word Game Messages
 
-Lightweight protocol that powers the Morph Duel helper features (insights, warnings, guardrails, and hints). Unless stated otherwise, all payloads include the usual `roomId` and follow the same error semantics described earlier.
+Protocol for the Circle Word Game where players form words from a circle of 9 letters within 60 seconds across 3 rounds. Unless stated otherwise, all payloads include the usual `roomId` and follow the same error semantics described earlier.
 
-### Client → Server: `start_game`
+### Client → Server: `circle_start_game`
 
-Start Morph Duel by sending `"gameMode": "morph"` in the payload. The room service replies with `morph_game_started`.
+Start Circle Word Game. The room service replies with `circle_game_started`.
 
 ```json
 {
-  "type": "start_game",
+  "type": "circle_start_game",
   "payload": {
-    "roomId": "room_123",
-    "gameMode": "morph"
+    "roomId": "room_123"
   }
 }
 ```
 
-### Server → Client: `morph_game_started`
+### Server → Client: `circle_game_started`
 
-Initial state snapshot plus insight metadata for the start/target words.
+Initial state snapshot with circle letters and game configuration.
 
 ```json
 {
-  "type": "morph_game_started",
+  "type": "circle_game_started",
   "payload": {
     "roomId": "room_123",
     "gameState": {
-      "startWord": "SLATE",
-      "targetWord": "CRANE",
-      "startWordMeta": {
-        "neighborCount": 24,
-        "branchLevel": "high"
-      },
-      "targetWordMeta": {
-        "neighborCount": 11,
-        "branchLevel": "medium"
+      "roundNumber": 1,
+      "totalRounds": 3,
+      "currentRound": {
+        "circleLetters": ["T", "E", "A", "R", "S", "O", "M", "L", "P"],
+        "durationSeconds": 60,
+        "startTime": 1638360000000
       },
       "players": {
         "usr_a": {
-          "currentWord": "SLATE",
-          "lastInsight": {
-            "word": "SLATE",
-            "neighborCount": 24,
-            "branchLevel": "high",
-            "distanceToTarget": 3
-          }
+          "userId": "usr_a",
+          "username": "Tom",
+          "totalScore": 0,
+          "roundsWon": 0,
+          "currentRoundWords": []
+        },
+        "usr_b": {
+          "userId": "usr_b",
+          "username": "bob",
+          "totalScore": 0,
+          "roundsWon": 0,
+          "currentRoundWords": []
         }
       },
-      "currentPlayer": "usr_a",
-      "turnCount": 0
+      "gameStatus": "active"
     }
   }
 }
 ```
 
-### Client → Server: `morph_move`
+### Client → Server: `circle_submit_word`
 
-Submit a one-letter morph attempt.
+Submit a word formed from adjacent circle letters.
 
 ```json
 {
-  "type": "morph_move",
+  "type": "circle_submit_word",
   "payload": {
     "roomId": "room_123",
-    "newWord": "PLATE"
+    "word": "STREAM"
   }
 }
 ```
 
-### Server → Client: `morph_move_result`
+### Server → Client: `circle_word_submitted`
 
-Move validation outcome for the requesting player. Includes helper data for the word they just played.
+Word validation outcome broadcast to all players in the room.
 
 ```json
 {
-  "type": "morph_move_result",
+  "type": "circle_word_submitted",
   "payload": {
-    "valid": true,
-    "feedback": ["gray", "yellow", "gray", "gray", "green"],
-    "transformationCount": 1,
-    "completed": false,
-    "insight": {
-      "word": "PLATE",
-      "neighborCount": 15,
-      "branchLevel": "high",
-      "distanceToTarget": 2,
-      "neighborPreview": ["SLATE", "PLAIN", "PLATE", "PLAZA"]
-    },
-    "warnings": [
-      {
-        "code": "LOW_BRANCHING",
-        "message": "Only 2 safe neighbors"
+    "roomId": "room_123",
+    "userId": "usr_a",
+    "word": "STREAM",
+    "isValid": true,
+    "score": 8,
+    "reason": "Valid word from adjacent letters",
+    "gameState": {
+      "players": {
+        "usr_a": {
+          "totalScore": 8,
+          "currentRoundWords": [
+            {
+              "word": "STREAM",
+              "score": 8
+            }
+          ]
+        }
       }
-    ],
-    "hintBudget": {
-      "used": 1,
-      "remaining": 4,
-      "limit": 5
     }
   }
 }
 ```
 
-Invalid attempts include `errors` the same way core Scrabble moves do.
+Invalid submissions include `isValid: false` with `reason` explaining the error (e.g., "Letters not adjacent", "Word already submitted", "Not in dictionary").
 
-### Server → Client: `morph_game_state`
+### Server → Client: `circle_round_ended`
 
-Room-wide broadcast after every valid morph move. Structure matches `morph_game_started`, with per-player `lastInsight`, `warnings`, `hintBudget`, and `turnHistory` arrays so spectators can visualize progress.
-
-### Server → Client: `morph_game_over`
-
-Emitted when someone reaches the target word (or the game forcibly ends). Contains the final `gameState`, `winner`, and `winningPath` summary.
-
-### Client → Server: `morph_hint_request`
-
-Ask for smart suggestions based on the caller's current word. Optional `limit` (default `3`, max `5`). This request is rejected if the player's hint budget is exhausted.
+Broadcast when the 60-second timer expires. Contains round results and winner.
 
 ```json
 {
-  "type": "morph_hint_request",
+  "type": "circle_round_ended",
   "payload": {
     "roomId": "room_123",
-    "limit": 3
+    "roundNumber": 1,
+    "roundWinner": "usr_b",
+    "scores": {
+      "usr_a": 28,
+      "usr_b": 34
+    },
+    "gameState": {
+      "roundNumber": 2,
+      "players": {
+        "usr_a": {
+          "roundsWon": 0
+        },
+        "usr_b": {
+          "roundsWon": 1
+        }
+      }
+    }
   }
 }
 ```
 
-### Server → Client: `morph_hint_result`
+### Server → Client: `circle_game_over`
 
-Deliver suggestions plus the updated hint counters.
+Emitted after 3 rounds complete. Contains final scores and match winner.
 
 ```json
 {
-  "type": "morph_hint_result",
+  "type": "circle_game_over",
   "payload": {
     "roomId": "room_123",
+    "gameWinner": "usr_a",
+    "finalScores": {
+      "usr_a": 102,
+      "usr_b": 98
+    },
+    "isDraw": false,
+    "gameState": {
+      "gameStatus": "ended",
+      "players": {
+        "usr_a": {
+          "roundsWon": 2,
+          "totalScore": 102
+        },
+        "usr_b": {
+          "roundsWon": 1,
+          "totalScore": 98
+        }
+      }
+    }
+  }
+}
+```
+
+### Client → Server: `circle_end_round`
+
+Manually end the round (typically sent by host or when timer expires on client side).
+
+```json
+{
+  "type": "circle_end_round",
+  "payload": {
+    "roomId": "room_123"
     "suggestions": [
       {
         "word": "CRATE",
