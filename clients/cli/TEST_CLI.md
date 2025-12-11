@@ -66,7 +66,7 @@ Choice: 2
 
 ## 🎮 Test Scenario 2: Two Player Game
 
-### Terminal 1 - Player 1 (Alice)
+### Terminal 1 - Player 1 (Tom)
 
 ```bash
 cd clients/cli
@@ -74,8 +74,8 @@ npm run dev
 ```
 
 **Steps:**
-1. Register → username: `alice`
-2. Create Room → name: `Alice's Game`
+1. Register → username: `Tom`
+2. Create Room → name: `Tom's Game`
 3. Wait for player 2...
 
 ### Terminal 2 - Player 2 (Bob)
@@ -88,10 +88,10 @@ npm run dev
 **Steps:**
 1. Register → username: `bob`
 2. List Rooms
-3. Join Room → enter the room ID from Alice
-4. Wait for Alice to start...
+3. Join Room → enter the room ID from Tom
+4. Wait for Tom to start...
 
-### Back to Terminal 1 (Alice)
+### Back to Terminal 1 (Tom)
 
 **Steps:**
 5. Start Game (option 1)
@@ -122,7 +122,7 @@ npm run dev
 **Expected:**
 - ✅ Valid move! You scored X points!
 - Board shows both words
-- Turn switches back to Alice
+- Turn switches back to Tom
 
 ---
 
@@ -171,7 +171,7 @@ Message: Good game!
 **Expected:**
 - Message appears in both terminals
 - Your message: "💬 You: Good game!"
-- Opponent sees: "💬 alice: Good game!"
+- Opponent sees: "💬 Tom: Good game!"
 
 ---
 
@@ -207,7 +207,7 @@ Choice: 6
 
 **Simulate game end by passing 6 times in a row:**
 
-**Alice:** Pass → **Bob:** Pass → **Alice:** Pass (repeat 3 times)
+**Tom:** Pass → **Bob:** Pass → **Tom:** Pass (repeat 3 times)
 
 **Expected after 6th pass:**
 - 🏁 GAME OVER!
@@ -298,10 +298,10 @@ You should see:
 ╚════════════════════════════════════════╝
 
 🔌 WebSocket connected
-✅ Authenticated: alice (usr_abc123...)
+✅ Authenticated: Tom (usr_abc123...)
 ✅ Connected to game server!
 
-✅ Room created: Alice's Game
+✅ Room created: Tom's Game
 Room ID: room_def456...
 ⏳ Waiting for another player to join...
 

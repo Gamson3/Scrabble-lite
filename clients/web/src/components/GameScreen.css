@@ -1,6 +1,0 @@
-.game-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px }
-.game-content { display:flex; gap:16px }
-.players-section { display:flex; gap:12px }
-.move-section { flex: 1 }
-.chat-section { margin-top: 16px }
-.hint-panel { margin-top: 8px }
